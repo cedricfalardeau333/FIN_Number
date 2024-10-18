@@ -19,12 +19,60 @@ const RealTimeGraph = () => {
     let isEnough = false; // If the FIN is high enough to support lifestyle without going broke
     const [intrestRateValue, setIntrestRateValue] = useState(5); // Initial intrest rate value
     const [averageInflationValue, setAverageInflationValue] = useState(2.67); // Initial intrest rate value
-    const [ageValue, setAgeValue] = useState(18); // Initial age value
+    const [ageValue, setAgeValue] = useState(25); // Initial age value
     const [retirementAgeValue, setRetirementAgeValue] = useState(65); // Initial retirement age value
     const [deathAgeValue, setDeathAgeValue] = useState(85); // Initial retirement age value
     const [initialInvestmentValue, setInitialInvestmentValue] = useState(50000); // Initial Investment value
-    const [monthlyContibutionsValue, setMonthlyContributionsValue] = useState(100); // Initial Investment value
-    const [retirementSalaryValue, setRetirementSalaryValue] = useState(50000); // Initial Investment value
+    const [monthlyContibutionsValue, setMonthlyContributionsValue] = useState(0); // Initial Investment value
+    const [retirementSalaryValue, setRetirementSalaryValue] = useState(2000); // monthlybudget after retirement
+
+    function calculateMonthlyContribution(
+      initialInvestment,
+      annualInterestRate,
+      inflationRate,
+      currentAge,
+      retirementAge,
+      ageOfDeparture,
+      monthlyWithdrawal
+  ) {
+      const monthsUntilRetirement = (retirementAge - currentAge) * 12;
+      const withdrawalDuration = (ageOfDeparture - retirementAge) * 12;
+  
+      // Convert rates to decimals
+      const monthlyInterestRate = annualInterestRate / 100 / 12;
+      const monthlyInflationRate = inflationRate / 100 / 12;
+  
+      // Future value of initial investment at retirement
+      const futureValueAtRetirement = initialInvestment * Math.pow(1 + monthlyInterestRate, monthsUntilRetirement);
+  
+      // Adjusted monthly withdrawal amount considering inflation
+      const adjustedWithdrawal = monthlyWithdrawal * Math.pow(1 + inflationRate / 100, retirementAge - currentAge);
+  
+      // Present value of withdrawals needed at retirement
+      const presentValueWithdrawals = adjustedWithdrawal * (1 - Math.pow(1 + monthlyInterestRate, -withdrawalDuration)) / monthlyInterestRate;
+  
+      // Amount still needed after accounting for future value of initial investment
+      const amountNeeded = presentValueWithdrawals - futureValueAtRetirement;
+  
+      // Monthly contribution required to reach the needed amount
+      const monthlyContribution = amountNeeded * monthlyInterestRate / (Math.pow(1 + monthlyInterestRate, monthsUntilRetirement) - 1);
+  
+      setMonthlyContributionsValue( monthlyContribution > 0 ? monthlyContribution : 0); // Ensure no negative contributions
+  }
+    
+    const handleSubmit = (e) => {
+      e.preventDefault();
+      calculateMonthlyContribution(
+        initialInvestmentValue,
+          intrestRateValue,
+          averageInflationValue,
+          ageValue,
+          retirementAgeValue,
+          deathAgeValue,
+          retirementSalaryValue
+      );
+    };
+  
 
     function calculateCompoundInterest(principal, rate, time, compoundingFreq,PMT) {
       // Validate input
@@ -38,68 +86,72 @@ const RealTimeGraph = () => {
       const t = time;
       const P = principal;
       
-      const amount = principal * Math.pow((1 + r / n), n * t);
+      const amount = principal * Math.pow((1 + r),t);
       const interest = amount - principal;
 
-      let A = (P * Math.pow((1 + r / n), (n * t)) +
+      let A = (P * Math.pow((1 + r), t) +
       PMT * ((Math.pow((1 + r / n), (n * t)) - 1) / (r / n)))
       /(Math.pow(1+(averageInflationValue/100), t)); //adjust for inflation
     
-      return {
-        principal: principal,
-        rate: rate,
-        time: time,
-        compoundingFreq: compoundingFreq,
-        amount: A.toFixed(2),
-        interest: interest.toFixed(2)
-      };
+      return  A.toFixed(2)
+
     }
 
-    function calculateCompoundInterestAfterRetirement(principal, rate, time, compoundingFreq, previousYearTotal) {
+    function calculateCompoundInterestAfterRetirement(annualInterestRate, time, previousTotal) {
       // Validate input
-      if (rate <= 0 || time < 0 || compoundingFreq <= 0) {
+      if (annualInterestRate <= 0 || time < 0) {
         throw new Error('All inputs must be positive numbers.');
       }
     
-      // Calculate compound interest
-      const n = compoundingFreq;
-      const r = rate / 100; // Convert rate percentage to decimal
+    // Convert rates to decimal
+    const monthlyInterestRate = annualInterestRate / 100 / 12;
+    const monthlyInflationRate = averageInflationValue / 100 / 12;
 
-      //use the previous years total minus your yearly post retirement spending and go per year hence the *1 at the end since we are using the previous years total
-      // and not the initial total multiplied by time
-      let amountAfterRetiring = (previousYearTotal-retirementSalaryValue) * Math.pow((1 + r / n), n * 1);
-    if(amountAfterRetiring<0){
-      amountAfterRetiring = 0;
+    // Calculate total amount after 12 months with monthly compounding interest
+    let totalWithInterest = previousTotal;
+    for (let i = 0; i < 12; i++) {
+        totalWithInterest *= (1 + monthlyInterestRate);
+    }
+
+    // Calculate adjusted spending for inflation over 12 months
+    let totalSpending = 0;
+    for (let i = 0; i < 12; i++) {
+        totalSpending += retirementSalaryValue * Math.pow(1 + monthlyInflationRate, i);
+    }
+
+    // Adjust the total for inflation-adjusted spending
+    let adjustedTotal = totalWithInterest - totalSpending;
+
+    if(adjustedTotal<0){
+      adjustedTotal = 0;
       isEnough = false;
     }
     else
       isEnough = true;
-      return {
-        principal: principal,
-        rate: rate,
-        time: time,
-        compoundingFreq: compoundingFreq,
-        amountAfterRetiring: amountAfterRetiring.toFixed(2),
-      };
+      return adjustedTotal.toFixed(2)
     }
     
-
-    // Function to generate data based on slider value
     const generateData = (count, initialInvestment, age, retirementAge, intrestRate, monthlyContibutions) => {
+      console.log(count)
+      console.log(initialInvestment)
+      console.log(age)
+      console.log(retirementAge)
+      console.log(intrestRate)
+      console.log(monthlyContibutions)
+
       const data = [];
       for (let i = 0; i <= count; i++) {
         if(i > (retirementAge -  age)){
-          data.push(calculateCompoundInterestAfterRetirement(initialInvestment,intrestRate,i,12,data[i-1]).amountAfterRetiring);
+          data.push(calculateCompoundInterestAfterRetirement(intrestRate,i,data[i-1]));
           continue;
         }
-        data.push(calculateCompoundInterest(initialInvestment,intrestRate,i,12,monthlyContibutions).amount);
+        data.push(calculateCompoundInterest(initialInvestment,intrestRate,i,12,monthlyContibutionsValue));
       }
-      console.log(data)
       return data;
     };
   
     // Generate initial data
-    const getData = generateData(deathAgeValue-ageValue, initialInvestmentValue, ageValue, retirementAgeValue, intrestRateValue,monthlyContibutionsValue);
+    const getData = generateData(deathAgeValue-ageValue, initialInvestmentValue, ageValue, retirementAgeValue, intrestRateValue, monthlyContibutionsValue);
   
     // Chart data and options
     const [chartData, setChartData] = useState({
@@ -158,68 +210,15 @@ const RealTimeGraph = () => {
           },
         ],
       })
-    }, [ageValue,retirementAgeValue,deathAgeValue,initialInvestmentValue,intrestRateValue,monthlyContibutionsValue,retirementSalaryValue,averageInflationValue]);
-    
+    }, [ageValue,retirementAgeValue,deathAgeValue,initialInvestmentValue,intrestRateValue,retirementSalaryValue,averageInflationValue,monthlyContibutionsValue]);
+    useEffect(() => {setMonthlyContributionsValue(null)},[ageValue,retirementAgeValue,deathAgeValue,initialInvestmentValue,intrestRateValue,retirementSalaryValue,averageInflationValue])
   
-    // Update chart data when slider value changes
-    // const handleSliderChange = (event) => {
-    //   const value = parseInt(event.target.value, 10) || "";
-    //   setSliderValue(value);
-    //   const newData = generateData(retirementAgeValue-ageValue, initialInvestmentValue);
-    //   setChartData({
-    //     labels: Array.from({ length: retirementAgeValue + 1  - ageValue }, (_, i) => i + ageValue),
-    //     datasets: [
-    //       {
-    //         ...chartData.datasets[0], // Keep other dataset properties unchanged
-    //         data: newData,
-    //       },
-    //     ],
-    //   });
-    // };
-
-    const handleInitialInvestmentChange = (event) => {
-      const value = parseInt(event.target.value, 10) || "";
-      setInitialInvestmentValue(value);
-    };
-
-    const handleMonthlyContributionsChange = (event) => {
-      const value = parseInt(event.target.value, 10) || "";
-      setMonthlyContributionsValue(value);
-    };
-
-    const handleIntrestRateChange = (event) => {
-      const value = parseInt(event.target.value, 10) || 1;
-      setIntrestRateValue(value);
-    };
-    
-    const handleAverageInflationChange = (event) => {
-      const value = event.target.value || "";
-      setAverageInflationValue(value);
-    };
-
-    const handleAgeChange = (event) => {
-      const value = parseInt(event.target.value, 10) || "";
-      setAgeValue(value);
-    };
-  
-    const handleRetirementAgeChange = (event) => {
-      const value = parseInt(event.target.value, 10) || "";
-      setRetirementAgeValue(value);
-    };
-    const handleDeathAgeChange = (event) => {
-      const value = parseInt(event.target.value, 10) || "";
-      setDeathAgeValue(value);
-    };
-    const handleRetirementSalaryChange = (event) => {
-      const value = parseInt(event.target.value, 10) || "";
-      setRetirementSalaryValue(value);
-    };
     return (
       <Container>
-        <Row>
+                <Row>
           <Col>
             <h2>Investometer</h2>
-            <Form>
+            <Form onSubmit={handleSubmit}>
               <Form.Group controlId="form">
                 <Row>
                 <Form.Label>Average Interest Rate:</Form.Label>
@@ -228,7 +227,7 @@ const RealTimeGraph = () => {
                   min="1"
                   max="10"
                   value={intrestRateValue}
-                  onChange={handleIntrestRateChange}
+                  onChange={(e) => setIntrestRateValue(Number(e.target.value))}
                 />
                 <Form.Text className="text-muted">
                   {intrestRateValue}
@@ -239,7 +238,7 @@ const RealTimeGraph = () => {
                 <Form.Control
                   type="text"
                   value={initialInvestmentValue}
-                  onChange={(e) => handleInitialInvestmentChange(e)}
+                  onChange={(e) => setInitialInvestmentValue(Number(e.target.value))} required
                 />
                 </Row>
                 <Row>
@@ -247,7 +246,7 @@ const RealTimeGraph = () => {
                 <Form.Control
                   type="text"
                   value={averageInflationValue}
-                  onChange={(e) => handleAverageInflationChange(e)}
+                  onChange={(e) => setAverageInflationValue(Number(e.target.value))} required
                 />
                 </Row>
                 <Row>
@@ -255,7 +254,7 @@ const RealTimeGraph = () => {
                 <Form.Control
                   type="text"
                   value={ageValue}
-                  onChange={(e) => handleAgeChange(e)}
+                  onChange={(e) => setAgeValue(Number(e.target.value))} required
                 />
                 </Row>
                 <Row>
@@ -263,7 +262,7 @@ const RealTimeGraph = () => {
                 <Form.Control
                   type="text"
                   value={retirementAgeValue}
-                  onChange={(e) => handleRetirementAgeChange(e)}
+                  onChange={(e) => setRetirementAgeValue(Number(e.target.value))} required
                 />
                 </Row>
                 <Row>
@@ -271,15 +270,7 @@ const RealTimeGraph = () => {
                 <Form.Control
                   type="text"
                   value={deathAgeValue}
-                  onChange={(e) => handleDeathAgeChange(e)}
-                />
-                </Row>
-                <Row>
-                <Form.Label>Monthly Contributions:</Form.Label>
-                <Form.Control
-                  type="text"
-                  value={monthlyContibutionsValue}
-                  onChange={(e) => handleMonthlyContributionsChange(e)}
+                  onChange={(e) => setDeathAgeValue(Number(e.target.value))} required
                 />
                 </Row>
                 <Row>
@@ -287,10 +278,15 @@ const RealTimeGraph = () => {
                 <Form.Control
                   type="text"
                   value={retirementSalaryValue}
-                  onChange={(e) => handleRetirementSalaryChange(e)}
+                  onChange={(e) => setRetirementSalaryValue(Number(e.target.value))} required
                 />
                 </Row>
               </Form.Group>
+              <button type="submit">Calculate Monthly Payment</button>
+              
+      {monthlyContibutionsValue !== null && (
+        <h2>Monthly Payment Needed: ${monthlyContibutionsValue.toFixed(2)}</h2>
+      )}
             </Form>
           </Col>
         </Row>
