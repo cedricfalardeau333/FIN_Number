@@ -7,22 +7,19 @@
 
 
 import Chart from 'chart.js/auto';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Line } from 'react-chartjs-2';
 import { Container, Row, Col, Form, Button } from 'react-bootstrap';
+import { FaPlus, FaMinus } from 'react-icons/fa';
 import ChartDataLabels from 'chartjs-plugin-datalabels';
 import Draggable from "react-draggable";
 import './investometer.css';
-console.log(Draggable);
 Chart.register(
   ChartDataLabels
 );
 
 const RealTimeGraph = () => {
-  const currentcyFormat = new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD"
-  });
+
 
 
   let isEnough = false; // If the FIN is high enough to support lifestyle without going broke
@@ -35,6 +32,11 @@ const RealTimeGraph = () => {
   const [initialInvestmentValue, setInitialInvestmentValue] = useState(0); // Initial Investment value
   const [monthlyContibutionsValue, setMonthlyContributionsValue] = useState(0); // Initial Investment value
   const [retirementSalaryValue, setRetirementSalaryValue] = useState(0); // monthlybudget after retirement
+  const [isCollapsed, setIsCollapsed] = useState(true); // State to track if inheritance collapsed
+  const [anticipatedInheritanceValue, setAnticipatedInheritanceValue] = useState(0); // Inheritance value 
+  const [inheritanceAgeValue, setInheritanceAgeValue] = useState(0); // Inheritance Age
+  const draggableRef = useRef(null);
+
 
   function calculateMonthlyContribution(
     initialInvestment,
@@ -65,8 +67,6 @@ const RealTimeGraph = () => {
 
     // Amount still needed after accounting for future value of initial investment
     const presentValueWithInterest = adjustedWithdrawal * (1 - Math.pow(1 + postAnnualInterestRate, -withdrawalDuration)) / postAnnualInterestRate;
-    const inflatedPresentValue = adjustedWithdrawal * Math.pow(1 + actualAnnualInflationRate, withdrawalDuration);
-    const  presentValue = presentValueWithInterest + inflatedPresentValue
     // Calculate the remaining amount needed
     const remainingAmount = presentValueWithInterest - adjustedFutureValue;
 
@@ -97,7 +97,7 @@ const RealTimeGraph = () => {
   };
 
 
-  function calculateCompoundInterest(initialInvestment, annualInterestRate, years, monthlyContribution, inflationValue) {
+  function calculateCompoundInterest(initialInvestment, annualInterestRate, years, monthlyContribution, inflationValue, age) {
 
     // Step 1: Calculate the future value of the initial investment
     const futureValueInitial = initialInvestment * Math.pow(1 + annualInterestRate / 100, years);
@@ -112,7 +112,10 @@ const RealTimeGraph = () => {
     const totalFutureValue = futureValueInitial + futureValueContributions;
 
     // Step 4: Adjust for inflation
-    const adjustedFutureValue = totalFutureValue / Math.pow(1 + inflationValue / 100, years);
+    let adjustedFutureValue = totalFutureValue / Math.pow(1 + inflationValue / 100, years);
+     if(years  +  age ==  inheritanceAgeValue){
+        adjustedFutureValue += anticipatedInheritanceValue;
+     }
 
     return adjustedFutureValue;
 
@@ -129,7 +132,6 @@ const RealTimeGraph = () => {
 
     // Calculate the total amount after interest for the year
     const totalAfterInterest = previousInvestment * (1 + r);
-    const adjustedFutureValue = totalAfterInterest / (1 + i);
 
     // Total withdrawals for the year
     const totalWithdrawals = adjustedWithdrawals * 12; // 12 months
@@ -140,7 +142,8 @@ const RealTimeGraph = () => {
 
     if (amountLeft < 0) {
       isEnough = false;
-      return previousInvestment - totalWithdrawals;
+      //return previousInvestment - totalWithdrawals;
+      return 0;
     }
     else {
       isEnough = true;
@@ -156,7 +159,7 @@ const RealTimeGraph = () => {
         data.push(calculateCompoundInterestAfterRetirement(postInterestRate, (retirementAge - age), data[i - 1], inflation, monthlybudget));
         continue;
       }
-      data.push(calculateCompoundInterest(initialInvestment, preInterestRate, i, monthlyContibutions, inflation));
+      data.push(calculateCompoundInterest(initialInvestment, preInterestRate, i, monthlyContibutions, inflation, age));
     }
     return data;
   };
@@ -169,7 +172,6 @@ const RealTimeGraph = () => {
     labels: Array.from({ length: deathAgeValue + 1 - ageValue }, (_, i) => i + ageValue),
     datasets: [
       {
-        NumberFormat: currentcyFormat.format,
         label: 'Total Growth',
         fill: false,
         lineTension: 0.1,
@@ -198,7 +200,6 @@ const RealTimeGraph = () => {
       labels: Array.from({ length: deathAgeValue + 1 - ageValue }, (_, i) => i + ageValue),
       datasets: [
         {
-          NumberFormat: currentcyFormat.format,
           label: 'Total Growth',
           fill: false,
           lineTension: 0.1,
@@ -221,14 +222,21 @@ const RealTimeGraph = () => {
         },
       ],
     })
-  }, [ageValue, retirementAgeValue, deathAgeValue, initialInvestmentValue, preInterestRateValue, postInterestRateValue, retirementSalaryValue, averageInflationValue, monthlyContibutionsValue]);
+  }, [ageValue, retirementAgeValue, deathAgeValue, initialInvestmentValue, preInterestRateValue, postInterestRateValue, retirementSalaryValue, averageInflationValue, monthlyContibutionsValue, anticipatedInheritanceValue, inheritanceAgeValue]);
   useEffect(() => { setMonthlyContributionsValue(null) }, [ageValue, retirementAgeValue, deathAgeValue, initialInvestmentValue, preInterestRateValue, postInterestRateValue, retirementSalaryValue, averageInflationValue])
 
   const calculateFutureValue = () => {
     const futureValue = retirementSalaryValue * Math.pow(1 + averageInflationValue/100, retirementAgeValue-ageValue) 
     return futureValue;
 };
+const toggleCollapse = () => {
+    if (!isCollapsed){
+        setAnticipatedInheritanceValue('');
+        setInheritanceAgeValue('');
+    }
+    setIsCollapsed(!isCollapsed); // Toggle collapse state  for inheritance bubble
 
+}
   return (
     <Container className="mt-5">
     <Row className="mb-4">
@@ -236,6 +244,64 @@ const RealTimeGraph = () => {
             <h2 className="text-center">Investometer</h2>
             <Form onSubmit={handleSubmit}>
                 <Form.Group controlId="form" className="p-4 border rounded shadow-sm bg-light">
+                <div style={{
+            position: 'absolute',
+            top: '3%', 
+            right: '15%', 
+            background: '#f8f9fa', 
+            padding: '5px', 
+            borderRadius: '8px', 
+            boxShadow: '0 0 10px rgba(0,0,0,0.2)',
+            width: '200px',
+            zIndex: 100,
+            transition: 'all 0.3s ease',
+        }}>
+            <div 
+                style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}
+                onClick={toggleCollapse}
+            >
+                <div style={{ marginRight: '10px' }}>
+                    {isCollapsed ? <FaPlus /> : <FaMinus />}
+                </div>
+                <h5 className="text-center mb-0" style={{ fontSize: '0.7rem' }}>
+                    Anticipated Inheritance
+                </h5>
+            </div>
+            {!isCollapsed && (
+                <>
+                    <Row className="mb-3">
+                        <Form.Label>Value of Inheritance:</Form.Label>
+                        <Col>
+                            <Form.Control
+                                type="number"
+                                value={anticipatedInheritanceValue}
+                                onChange={(e) => {
+                                    const value = e.target.value;
+                                    setAnticipatedInheritanceValue(value === '' ? '' : Number(value));
+                                }}
+                                required
+                                className="fun-input"
+                            />
+                        </Col>
+                    </Row>
+                    <Row className="mb-3">
+                        <Form.Label>Age of Inheritance:</Form.Label>
+                        <Col>
+                            <Form.Control
+                                type="number"
+                                value={inheritanceAgeValue}
+                                onChange={(e) => {
+                                    const value = e.target.value;
+                                    setInheritanceAgeValue(value === '' ? '' : Number(value));
+                                }}
+                                required
+                                className="fun-input"
+                            />
+                        </Col>
+                    </Row>
+                </>
+            )}
+        </div>
                     <Row className="mb-3">
                         <Form.Label>Value of Current Retirement Investment:</Form.Label>
                         <Col>
@@ -247,7 +313,7 @@ const RealTimeGraph = () => {
                                     setInitialInvestmentValue(value === '' ? '' : Number(value));
                                 }}
                                 required
-                                className="fun-input" // Add custom class
+                                className="fun-input"
                             />
                         </Col>
                     </Row>
@@ -263,7 +329,7 @@ const RealTimeGraph = () => {
                                     setRetirementSalaryValue(value === '' ? '' : Number(value));
                                 }}
                                 required
-                                className="fun-input" // Add custom class
+                                className="fun-input"
                             />
                         </Col>
                     </Row>
@@ -304,7 +370,7 @@ const RealTimeGraph = () => {
                     <Form.Control
                         type="range"
                         min="1"
-                        max="5"
+                        max="10"
                         step="0.5"
                         value={averageInflationValue}
                         onChange={(e) => setAverageInflationValue(Number(e.target.value))}
@@ -363,8 +429,11 @@ const RealTimeGraph = () => {
                     }
                 }}
             />
-            <Draggable>
-                <div style={{
+
+            <Draggable nodeRef={draggableRef}>
+                <div
+                ref={draggableRef}
+                 style={{
                     position: 'absolute',
                     bottom: '10%',
                     left: '10%', 
@@ -392,8 +461,10 @@ const RealTimeGraph = () => {
             </Draggable>
 
 
-            <Draggable>
-                <div style={{
+            <Draggable nodeRef={draggableRef}>
+                <div
+                 ref={draggableRef}
+                 style={{
                     position: 'absolute',
                     bottom: '50%',
                     right: '25%',
@@ -423,8 +494,10 @@ const RealTimeGraph = () => {
             </Draggable>
 
 
-            <Draggable>
-                <div style={{
+            <Draggable nodeRef={draggableRef}>
+                <div 
+                ref={draggableRef}
+                style={{
                     position: 'absolute',
                     bottom: '10%',
                     right: '10%',
@@ -444,7 +517,7 @@ const RealTimeGraph = () => {
                                     setDeathAgeValue(value === '' ? '' : Number(value));
                                 }}
                                 required
-                                className="fun-input" // Add custom class
+                                className="fun-input"
                             />
                         </Col>
                     </Row>
