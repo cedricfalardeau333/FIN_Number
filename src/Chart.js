@@ -14,6 +14,26 @@
 // DONE ------------Make everything fit on one page. No need to scroll the page up and down
 // DONE ------------Does the monthly retirement income factor in inflation?
 
+//---Revision 2
+ 
+// DONE ------------ Remove the negative amounts option, should only be as low as zero
+
+// DONE ------------ Not sure why its asking for the monthly investment field to be filled out
+
+// Not sure but I think the formulas are not accurately calculating stuff
+
+// Can we show the existing pac if they have one and how it will not , in most cases, fulfil the needs
+
+// YES -------------Does the monthly retirement income factor inflation?
+
+// Add commas in money valuesz
+
+// auto update for monthly investment
+
+// Bigger Fin number
+
+// move inheritance close in
+
 import Chart from 'chart.js/auto';
 import React, { useState, useEffect} from 'react';
 import { Line } from 'react-chartjs-2';
@@ -195,8 +215,9 @@ const RealTimeGraph = () => {
 
 
     if (amountLeft < 0) {
-      isEnough = false;
-      return previousInvestment - totalWithdrawals;
+        if (amountLeft<-10)
+            isEnough = false;
+        return 0;
     }
     else {
       isEnough = true;
@@ -373,7 +394,7 @@ const toggleCollapse = () => {
                     </Row>
 
                     <Row className="mb-3">
-                        <Form.Label>Gross Monthly Retirement Income:</Form.Label>
+                        <Form.Label>Desired Retirement Income:</Form.Label>
                         <Col>
                             <Form.Control
                                 type="number"
@@ -409,7 +430,6 @@ const toggleCollapse = () => {
                                     const value = e.target.value;
                                     setMonthlyContributionsValue(value === '' ? '' : Number(value));
                                 }}
-                                required
                                 className="fun-input"
                             />
                         </Col>
@@ -460,7 +480,7 @@ const toggleCollapse = () => {
                     <Form.Text className="text-muted">{postInterestRateValue}</Form.Text>
                 </Col>
             </Row>
-            <div style={{ backgroundColor: '#f0f0f0', margin: 'auto' }}>
+            <div style={{backgroundImage: 'linear-gradient(GhostWhite, azure)', margin: 'auto' }}>
             <Line
                 data={chartData}
                 options={{
