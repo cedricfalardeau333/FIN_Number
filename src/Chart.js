@@ -20,7 +20,7 @@
 
 // ? ---------------Not sure but I think the formulas are not accurately calculating stuff
 
-// Can we show the existing pac if they have one and how it will not , in most cases, fulfil the needs
+// DONE ------------Can we show the existing pac if they have one and how it will not , in most cases, fulfil the needs
 
 // YES -------------Does the monthly retirement income factor inflation?
 
@@ -31,6 +31,11 @@
 // DONE ------------- Bigger Fin number
 
 // DONE ------------- move inheritance close in
+
+// DONE ------------- add current monthly investments seprate from the needed monthly investment
+
+// add an option to reduce desired retirmement income at selected age
+
 
 import Chart from 'chart.js/auto';
 import React, { useState, useEffect } from 'react';
@@ -61,6 +66,7 @@ const RealTimeGraph = () => {
     const [deathAgeValue, setDeathAgeValue] = useState(85); // Initial retirement age value
     const [initialInvestmentValue, setInitialInvestmentValue] = useState(100000); // Initial Investment value
     const [monthlyContibutionsValue, setMonthlyContributionsValue] = useState(0); // Initial Investment value
+    const [currentMonthlyContibutionsValue, setCurrentMonthlyContributionsValue] = useState(0); // Initial Investment value
     const [retirementSalaryValue, setRetirementSalaryValue] = useState(2000); // monthlybudget after retirement
     const [isCollapsed, setIsCollapsed] = useState(true); // State to track if inheritance collapsed
     const [anticipatedInheritanceValue, setAnticipatedInheritanceValue] = useState(0); // Inheritance value 
@@ -90,7 +96,9 @@ const RealTimeGraph = () => {
         currentAge,
         retirementAge,
         ageOfDeparture,
-        monthlyWithdrawal
+        monthlyWithdrawal,
+        ageOfInheritance,
+        valueOfInheritance
     ) {
         const yearsUntilRetirement = (retirementAge - currentAge);
         const withdrawalDuration = (ageOfDeparture - retirementAge);
@@ -100,12 +108,22 @@ const RealTimeGraph = () => {
         const preAnnualInterestRate = preInterestRate / 100;
         const postAnnualInterestRate = postInterestRate / 100;
         const actualAnnualInflationRate = inflationRate / 100;
+        // Initialise total future value
+        let totalFutureValueAtRetirement = initialInvestment * Math.pow(1 + preAnnualInterestRate, yearsUntilRetirement);
+        let adjustedFutureValue = totalFutureValueAtRetirement / Math.pow(1 + actualAnnualInflationRate, yearsUntilRetirement);
+
+        if(ageOfInheritance>=currentAge){
+            // Calculate the future value of the inheritance from the inheritance year to retirement
+            const futureValueOfInheritance = valueOfInheritance * Math.pow(1 + preAnnualInterestRate, retirementAge-ageOfInheritance);
+            //adjust inheritanmce for inflation
+            const adjustedInheritanceFutureValue = futureValueOfInheritance / Math.pow(1 + actualAnnualInflationRate, retirementAge-ageOfInheritance);
 
 
-        // Future value of initial investment at retirement
-        const futureValueAtRetirement = initialInvestment * Math.pow(1 + preAnnualInterestRate, yearsUntilRetirement);
-        const adjustedFutureValue = futureValueAtRetirement / Math.pow(1 + actualAnnualInflationRate, yearsUntilRetirement);
-
+            // Add the inheritance to the future falue
+            adjustedFutureValue = adjustedFutureValue + adjustedInheritanceFutureValue;
+        }
+       
+ console.log(adjustedFutureValue)
         // Adjusted withdrawal amount considering inflation
         const adjustedWithdrawal = yearlyWithdrawl * Math.pow(1 + actualAnnualInflationRate, yearsUntilRetirement);
 
@@ -136,7 +154,9 @@ const RealTimeGraph = () => {
             ageValue,
             retirementAgeValue,
             deathAgeValue,
-            retirementSalaryValue
+            retirementSalaryValue,
+            inheritanceAgeValue,
+            anticipatedInheritanceValue
         );
     };
 
@@ -164,7 +184,7 @@ const RealTimeGraph = () => {
         //after inheritance
         else {
             // Step 1: Calculate the future value of the initial investment
-            const futureValueInitial = initialInvestment * Math.pow(1 + annualInterestRate / 100, inheritanceAgeValue - age);
+            const futureValueInitial = initialInvestment * Math.pow(1 + annualInterestRate / 100, years);
 
             // Step 2: Calculate the future value of the monthly contributions
             const monthlyRate = annualInterestRate / 100 / 12;
@@ -173,28 +193,25 @@ const RealTimeGraph = () => {
             const futureValueContributions = monthlyContribution * ((Math.pow(1 + monthlyRate, totalMonths) - 1) / monthlyRate);
 
             // Step 3: Calculate the total future value
-            const totalFutureValue = futureValueInitial + futureValueContributions;
+            const totalInitialValue = futureValueInitial + futureValueContributions;
 
             // Step 4: Adjust for inflation
-            let adjustedFutureValue = totalFutureValue / Math.pow(1 + inflationValue / 100, inheritanceAgeValue - age);
+            const adjustedInitialFutureValue = totalInitialValue / Math.pow(1 + inflationValue / 100, years);
 
             //do calculations again for after inheritance
             // Step 1: Calculate the future value of the initial investment plus inheritance
-            const futureValueInitial2 = (adjustedFutureValue + anticipatedInheritanceValue) * Math.pow(1 + annualInterestRate / 100, (age + years) - inheritanceAgeValue);
-            // Step 2: Calculate the future value of the monthly contributions
-            const totalMonths2 = years * 12;
+            const futureValueInheritance = (anticipatedInheritanceValue) * Math.pow(1 + annualInterestRate / 100, (age + years) - inheritanceAgeValue);
+            //Step 2: Adjust for inflation on inheritance
+            const adjustedInheritanceFutureValue = futureValueInheritance / Math.pow(1 + inflationValue / 100, (age + years) - inheritanceAgeValue);
 
-            const futureValueContributions2 = monthlyContribution * ((Math.pow(1 + monthlyRate, totalMonths2) - 1) / monthlyRate);
             // Step 3: Calculate the total future value
-            const totalFutureValue2 = futureValueInitial2 + futureValueContributions2;
+            const totalFutureValue = adjustedInheritanceFutureValue + adjustedInitialFutureValue;
 
-            // Step 4: Adjust for inflation
-            let adjustedFutureValue2 = totalFutureValue2 / Math.pow(1 + inflationValue / 100, (age + years) - inheritanceAgeValue);
-            return adjustedFutureValue2;
+            return totalFutureValue;
         }
     }
 
-    function calculateCompoundInterestAfterRetirement(annualInterestRate, YearsBeforeRetirement, previousInvestment, annualInflationRate, monthlyWithdrawal) {
+    function calculateCompoundInterestAfterRetirement(annualInterestRate, YearsBeforeRetirement, previousInvestment, annualInflationRate, monthlyWithdrawal, currentYear) {
 
         // Convert annual rates to decimals
         const r = annualInterestRate / 100;  // Convert to decimal
@@ -210,9 +227,11 @@ const RealTimeGraph = () => {
         const totalWithdrawals = adjustedWithdrawals * 12; // 12 months
 
         // Calculate the amount left at the end of the year
-        const amountLeft = totalAfterInterest - totalWithdrawals;
+        let amountLeft = totalAfterInterest - totalWithdrawals;
 
-
+        if(inheritanceAgeValue == currentYear){
+            amountLeft = amountLeft + anticipatedInheritanceValue;
+        }
         if (amountLeft < 0) {
             if (amountLeft < -20)
                 isEnough = false;
@@ -229,7 +248,7 @@ const RealTimeGraph = () => {
         const data = [];
         for (let i = 0; i <= count; i++) {
             if (i > (retirementAge - age)) {
-                data.push(calculateCompoundInterestAfterRetirement(postInterestRate, (retirementAge - age), data[i - 1], inflation, monthlybudget));
+                data.push(calculateCompoundInterestAfterRetirement(postInterestRate, (retirementAge - age), data[i - 1], inflation, monthlybudget,age+i));
                 continue;
             }
             data.push(calculateCompoundInterest(initialInvestment, preInterestRate, i, monthlyContibutions, inflation, age));
@@ -239,7 +258,7 @@ const RealTimeGraph = () => {
 
     // Generate initial data
     const getData = generateData(deathAgeValue - ageValue, initialInvestmentValue, ageValue, retirementAgeValue, postInterestRateValue, preInterestRateValue, monthlyContibutionsValue, averageInflationValue, retirementSalaryValue);
-    const getExistingPAC = generateData(deathAgeValue - ageValue, initialInvestmentValue, ageValue, retirementAgeValue, postInterestRateValue, preInterestRateValue, 0, averageInflationValue, retirementSalaryValue);
+    const getExistingPAC = generateData(deathAgeValue - ageValue, initialInvestmentValue, ageValue, retirementAgeValue, postInterestRateValue, preInterestRateValue, currentMonthlyContibutionsValue, averageInflationValue, retirementSalaryValue);
 
     // Chart data and options
     const [chartData, setChartData] = useState({
@@ -353,10 +372,12 @@ const RealTimeGraph = () => {
             ageValue,
             retirementAgeValue,
             deathAgeValue,
-            retirementSalaryValue
+            retirementSalaryValue,
+            inheritanceAgeValue,
+            anticipatedInheritanceValue
         );
 
-    }, [ageValue, retirementAgeValue, deathAgeValue, initialInvestmentValue, preInterestRateValue, postInterestRateValue, retirementSalaryValue, averageInflationValue, monthlyContibutionsValue, anticipatedInheritanceValue, inheritanceAgeValue]);
+    }, [ageValue, retirementAgeValue, deathAgeValue, initialInvestmentValue, preInterestRateValue, postInterestRateValue, retirementSalaryValue, averageInflationValue, currentMonthlyContibutionsValue, monthlyContibutionsValue, anticipatedInheritanceValue, inheritanceAgeValue]);
 
     const calculateFutureValue = () => {
         const futureValue = retirementSalaryValue * Math.pow(1 + averageInflationValue / 100, retirementAgeValue - ageValue)
@@ -374,7 +395,7 @@ const RealTimeGraph = () => {
         <Container style={{ backgroundImage: 'linear-gradient(#f0f6fc, #9ec2e6)' }}>
             <Row className="mb-4">
                 <Col>
-                    <h2 className="text-center">FIN#</h2>
+                    <h1 style={{marginBottom:"0px"}} className="text-center">FIN#</h1>
                     <Form onSubmit={handleSubmit}>
                         <Form.Group controlId="form" className="p-4 border rounded shadow-sm bg-light">
                             <div style={{
@@ -480,10 +501,25 @@ const RealTimeGraph = () => {
                             </Button>
                         </Col>
                     </Row> */}
-
+                            <Row>
+                            <Form.Label>Current Monthly Contributions:</Form.Label>
+                            <Col>
+                                    <Form.Group>
+                                        <CurrencyInput
+                                            value={currentMonthlyContibutionsValue}
+                                            decimalsLimit={2}        // Allow two decimals (e.g., cents)
+                                            prefix="$"               // Currency symbol
+                                            onValueChange={(value) => setCurrentMonthlyContributionsValue(value)}  // Update state
+                                            placeholder="Enter amount"
+                                            required
+                                            className="fun-input"
+                                        />
+                                    </Form.Group>
+                                </Col>
+                            </Row>
                             <Row className="mb-3">
                                 <div style={{ border: 'solid', display: 'inline-block', paddingLeft: '15px', paddingRight: '15px', borderRadius: "8px" }}>
-                                    <Form.Label>Monthly Investment: </Form.Label>
+                                    <Form.Label>Monthly Investment Needed: </Form.Label>
                                     <Col>
                                         <Form.Group>
                                             <Form.Label style={{ fontWeight: 'bold' }}>
@@ -620,7 +656,7 @@ const RealTimeGraph = () => {
                             }}
                         />
                     </div>
-                    <div className="slider-container" style={{ marginLeft: '50px', marginRight: '33px' }}>
+                    <div className="slider-container" style={{ marginLeft: '50px', marginRight: '25px' }}>
 
                         <Range
                             values={ageValues}
