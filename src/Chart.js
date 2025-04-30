@@ -68,9 +68,12 @@ const RealTimeGraph = () => {
     const [monthlyContibutionsValue, setMonthlyContributionsValue] = useState(0); // Initial Investment value
     const [currentMonthlyContibutionsValue, setCurrentMonthlyContributionsValue] = useState(0); // Initial Investment value
     const [retirementSalaryValue, setRetirementSalaryValue] = useState(2000); // monthlybudget after retirement
-    const [isCollapsed, setIsCollapsed] = useState(true); // State to track if inheritance collapsed
+    const [inheritanceIsCollapsed, setInheritanceIsCollapsed] = useState(true); // State to track if inheritance collapsed
+    const [midRetirementChangeIsCollapsed, setMidRetirementChangeIsCollapsed] = useState(true); // State to track if inheritance collapsed
     const [anticipatedInheritanceValue, setAnticipatedInheritanceValue] = useState(0); // Inheritance value 
     const [inheritanceAgeValue, setInheritanceAgeValue] = useState(0); // Inheritance Age
+    const [newRetirementIncomeValue, setNewRetirementIncomeValue] = useState(0); // Inheritance value 
+    const [newRetirementIncomeAgeValue, setNewRetirementIncomeAgeValue] = useState(0); // Inheritance Age
     const [ageValues, setageValues] = useState([18, 65, 85]); // low, middle, high values
 
     const FormatCurrency = (value) => {
@@ -216,9 +219,14 @@ const RealTimeGraph = () => {
         // Convert annual rates to decimals
         const r = annualInterestRate / 100;  // Convert to decimal
         const i = annualInflationRate / 100; // Convert to decimal
-
+        let adjustedWithdrawals;
         // Calculate the adjusted monthly withdrawal amount
-        const adjustedWithdrawals = monthlyWithdrawal * Math.pow(1 + i, YearsBeforeRetirement);
+        if(newRetirementIncomeAgeValue<=currentYear){
+            adjustedWithdrawals = newRetirementIncomeValue * Math.pow(1 + i, YearsBeforeRetirement);
+        }
+        else{
+            adjustedWithdrawals = monthlyWithdrawal * Math.pow(1 + i, YearsBeforeRetirement);
+        }
 
         // Calculate the total amount after interest for the year
         const totalAfterInterest = previousInvestment * (1 + r);
@@ -377,18 +385,26 @@ const RealTimeGraph = () => {
             anticipatedInheritanceValue
         );
 
-    }, [ageValue, retirementAgeValue, deathAgeValue, initialInvestmentValue, preInterestRateValue, postInterestRateValue, retirementSalaryValue, averageInflationValue, currentMonthlyContibutionsValue, monthlyContibutionsValue, anticipatedInheritanceValue, inheritanceAgeValue]);
+    }, [ageValue, retirementAgeValue, deathAgeValue, initialInvestmentValue, preInterestRateValue, postInterestRateValue, retirementSalaryValue, averageInflationValue, currentMonthlyContibutionsValue, monthlyContibutionsValue, anticipatedInheritanceValue, inheritanceAgeValue,newRetirementIncomeValue,newRetirementIncomeAgeValue]);
 
     const calculateFutureValue = () => {
         const futureValue = retirementSalaryValue * Math.pow(1 + averageInflationValue / 100, retirementAgeValue - ageValue)
         return (FormatCurrency(futureValue));
     };
-    const toggleCollapse = () => {
-        if (!isCollapsed) {
+    const toggleCollapseInheritance = () => {
+        if (!inheritanceIsCollapsed) {
             setAnticipatedInheritanceValue('');
             setInheritanceAgeValue('');
         }
-        setIsCollapsed(!isCollapsed); // Toggle collapse state  for inheritance bubble
+        setInheritanceIsCollapsed(!inheritanceIsCollapsed); // Toggle collapse state  for inheritance bubble
+
+    }
+    const toggleCollapseMidRetirementChange = () => {
+        if (!midRetirementChangeIsCollapsed) {
+            setNewRetirementIncomeValue('');
+            setNewRetirementIncomeAgeValue('');
+        }
+        setMidRetirementChangeIsCollapsed(!midRetirementChangeIsCollapsed); // Toggle collapse state  for inheritance bubble
 
     }
     return (
@@ -412,16 +428,16 @@ const RealTimeGraph = () => {
                             }}>
                                 <div
                                     style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}
-                                    onClick={toggleCollapse}
+                                    onClick={toggleCollapseInheritance}
                                 >
                                     <div style={{ marginRight: '10px' }}>
-                                        {isCollapsed ? <FaPlus /> : <FaMinus />}
+                                        {inheritanceIsCollapsed ? <FaPlus /> : <FaMinus />}
                                     </div>
                                     <h5 className="text-center mb-0" style={{ fontSize: '0.7rem' }}>
                                         Anticipated Inheritance
                                     </h5>
                                 </div>
-                                {!isCollapsed && (
+                                {!inheritanceIsCollapsed && (
                                     <>
                                         <Row className="mb-3">
                                             <Form.Label>Value of Inheritance:</Form.Label>
@@ -435,6 +451,7 @@ const RealTimeGraph = () => {
                                                     }}
                                                     required
                                                     className="fun-input"
+                                                    step={50000}
                                                 />
                                             </Col>
                                         </Row>
@@ -447,6 +464,65 @@ const RealTimeGraph = () => {
                                                     onChange={(e) => {
                                                         const value = e.target.value;
                                                         setInheritanceAgeValue(value === '' ? '' : Number(value));
+                                                    }}
+                                                    required
+                                                    className="fun-input"
+                                                />
+                                            </Col>
+                                        </Row>
+                                    </>
+                                )}
+                            </div>
+                            <div style={{
+                                position: 'absolute',
+                                top: '10%',
+                                left: '28%',
+                                background: '#f8f9fa',
+                                padding: '5px',
+                                borderRadius: '8px',
+                                boxShadow: '0 0 10px rgba(0,0,0,0.2)',
+                                width: '200px',
+                                zIndex: 100,
+                                transition: 'all 0.3s ease',
+                            }}>
+                                <div
+                                    style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}
+                                    onClick={toggleCollapseMidRetirementChange}
+                                >
+                                    <div style={{ marginRight: '10px' }}>
+                                        {midRetirementChangeIsCollapsed ? <FaPlus /> : <FaMinus />}
+                                    </div>
+                                    <h5 className="text-center mb-0" style={{ fontSize: '0.7rem' }}>
+                                        Mid retirement Income Change
+                                    </h5>
+                                </div>
+                                {!midRetirementChangeIsCollapsed && (
+                                    <>
+                                        <Row className="mb-3">
+                                            <Form.Label>New Monthly income:</Form.Label>
+                                            <Col>
+                                                <Form.Control
+                                                    type="number"
+                                                    value={newRetirementIncomeValue}
+                                                    onChange={(e) => {
+                                                        const value = e.target.value;
+                                                        setNewRetirementIncomeValue(value === '' ? '' : Number(value));
+                                                    }}
+                                                    required
+                                                    className="fun-input"
+                                                    step={500}
+                                                />
+                                            </Col>
+                                        </Row>
+                                        <Row className="mb-3">
+                                            <Form.Label>Age of Income Change:</Form.Label>
+                                            <Col>
+                                                <Form.Control
+                                                    type="number"
+                                                    value={newRetirementIncomeAgeValue}
+                                                    onChange={(e) => {
+                                                        const value = e.target.value;
+                                                        setNewRetirementIncomeAgeValue(value === '' ? '' : Number(value));
                                                     }}
                                                     required
                                                     className="fun-input"
@@ -474,7 +550,7 @@ const RealTimeGraph = () => {
                             </Row>
 
                             <Row className="mb-3">
-                                <Form.Label>Desired Retirement Income:</Form.Label>
+                                <Form.Label>Desired Monthly Retirement Income:</Form.Label>
                                 <Col>
                                     <Form.Group>
                                         <CurrencyInput
@@ -607,9 +683,21 @@ const RealTimeGraph = () => {
                                     }
                                 },
                                 plugins: {
+                                    title: {
+                                        display: false,
+                                      },
                                     legend: {
-                                        display: false
-                                    },
+                                        display: true,
+                                        position: 'bottom',
+                                        labels: {
+                                            boxWidth: 20,     // default is 40
+                                            boxHeight: 2,    // optional (only works in newer Chart.js versions)
+                                            padding: 10,      // space between items
+                                            font: {
+                                              size: 14,       // reduce text size if needed
+                                            },
+                                          }
+                                      },
                                     datalabels: {
                                         color: 'green',
                                         display: function (context) {
