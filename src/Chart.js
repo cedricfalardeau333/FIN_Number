@@ -214,14 +214,14 @@ const RealTimeGraph = () => {
         }
     }
 
-    function calculateCompoundInterestAfterRetirement(annualInterestRate, YearsBeforeRetirement, previousInvestment, annualInflationRate, monthlyWithdrawal, currentYear) {
+    function calculateCompoundInterestAfterRetirement(annualInterestRate, YearsBeforeRetirement, previousInvestment, annualInflationRate, monthlyWithdrawal, currentYear,retirementAge) {
 
         // Convert annual rates to decimals
         const r = annualInterestRate / 100;  // Convert to decimal
         const i = annualInflationRate / 100; // Convert to decimal
         let adjustedWithdrawals;
         // Calculate the adjusted monthly withdrawal amount
-        if(newRetirementIncomeAgeValue<=currentYear){
+        if(currentYear >=newRetirementIncomeAgeValue   && newRetirementIncomeAgeValue >= retirementAge){
             adjustedWithdrawals = newRetirementIncomeValue * Math.pow(1 + i, YearsBeforeRetirement);
         }
         else{
@@ -256,7 +256,7 @@ const RealTimeGraph = () => {
         const data = [];
         for (let i = 0; i <= count; i++) {
             if (i > (retirementAge - age)) {
-                data.push(calculateCompoundInterestAfterRetirement(postInterestRate, (retirementAge - age), data[i - 1], inflation, monthlybudget,age+i));
+                data.push(calculateCompoundInterestAfterRetirement(postInterestRate, (retirementAge - age), data[i - 1], inflation, monthlybudget,age+i,retirementAge));
                 continue;
             }
             data.push(calculateCompoundInterest(initialInvestment, preInterestRate, i, monthlyContibutions, inflation, age));
