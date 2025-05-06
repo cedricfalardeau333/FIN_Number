@@ -34,8 +34,12 @@
 
 // DONE ------------- add current monthly investments seprate from the needed monthly investment
 
-// add an option to reduce desired retirmement income at selected age
+// DONE ------------- add an option to reduce desired retirmement income at selected age
 
+// adjust mid retirement income change for calculating FIN 
+
+// Remove cents
+ 
 
 import Chart from 'chart.js/auto';
 import React, { useState, useEffect } from 'react';
@@ -80,6 +84,8 @@ const RealTimeGraph = () => {
         const formattedValue = new Intl.NumberFormat('en-US', {
             style: 'currency',
             currency: 'USD',
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 0
         }).format(value);
         return formattedValue;
     };
@@ -112,21 +118,21 @@ const RealTimeGraph = () => {
         const postAnnualInterestRate = postInterestRate / 100;
         const actualAnnualInflationRate = inflationRate / 100;
         // Initialise total future value
-        let totalFutureValueAtRetirement = initialInvestment * Math.pow(1 + preAnnualInterestRate, yearsUntilRetirement);
-        let adjustedFutureValue = totalFutureValueAtRetirement / Math.pow(1 + actualAnnualInflationRate, yearsUntilRetirement);
+        const adjustedFutureValue =  calculateCompoundInterest(initialInvestment,preInterestRate,yearsUntilRetirement,0,inflationRate,retirementAge);
+        // let totalFutureValueAtRetirement = initialInvestment * Math.pow(1 + preAnnualInterestRate, yearsUntilRetirement);
+        // let adjustedFutureValue = totalFutureValueAtRetirement / Math.pow(1 + actualAnnualInflationRate, yearsUntilRetirement);
 
-        if(ageOfInheritance>=currentAge){
-            // Calculate the future value of the inheritance from the inheritance year to retirement
-            const futureValueOfInheritance = valueOfInheritance * Math.pow(1 + preAnnualInterestRate, retirementAge-ageOfInheritance);
-            //adjust inheritanmce for inflation
-            const adjustedInheritanceFutureValue = futureValueOfInheritance / Math.pow(1 + actualAnnualInflationRate, retirementAge-ageOfInheritance);
+        // if(ageOfInheritance>=currentAge){
+        //     // Calculate the future value of the inheritance from the inheritance year to retirement
+        //     const futureValueOfInheritance = valueOfInheritance * Math.pow(1 + preAnnualInterestRate, retirementAge-ageOfInheritance);
+        //     //adjust inheritanmce for inflation
+        //     const adjustedInheritanceFutureValue = futureValueOfInheritance / Math.pow(1 + actualAnnualInflationRate, retirementAge-ageOfInheritance);
 
 
-            // Add the inheritance to the future falue
-            adjustedFutureValue = adjustedFutureValue + adjustedInheritanceFutureValue;
-        }
+        //     // Add the inheritance to the future falue
+        //     adjustedFutureValue = adjustedFutureValue + adjustedInheritanceFutureValue;
+        // }
        
- console.log(adjustedFutureValue)
         // Adjusted withdrawal amount considering inflation
         const adjustedWithdrawal = yearlyWithdrawl * Math.pow(1 + actualAnnualInflationRate, yearsUntilRetirement);
 
@@ -167,12 +173,12 @@ const RealTimeGraph = () => {
     function calculateCompoundInterest(initialInvestment, annualInterestRate, years, monthlyContribution, inflationValue, age) {
 
         if (years + age < inheritanceAgeValue || inheritanceAgeValue < age) {
-            // Step 1: Calculate the future value of the initial investment
-            const futureValueInitial = initialInvestment * Math.pow(1 + annualInterestRate / 100, years);
-
-            // Step 2: Calculate the future value of the monthly contributions
             const monthlyRate = annualInterestRate / 100 / 12;
             const totalMonths = years * 12;
+            // Step 1: Calculate the future value of the initial investment
+            const futureValueInitial = initialInvestment * Math.pow(1 + monthlyRate, totalMonths);
+
+            // Step 2: Calculate the future value of the monthly contributions
 
             const futureValueContributions = monthlyContribution * ((Math.pow(1 + monthlyRate, totalMonths) - 1) / monthlyRate);
 
@@ -186,12 +192,13 @@ const RealTimeGraph = () => {
         }
         //after inheritance
         else {
-            // Step 1: Calculate the future value of the initial investment
-            const futureValueInitial = initialInvestment * Math.pow(1 + annualInterestRate / 100, years);
-
-            // Step 2: Calculate the future value of the monthly contributions
             const monthlyRate = annualInterestRate / 100 / 12;
             const totalMonths = years * 12;
+
+            // Step 1: Calculate the future value of the initial investment
+            const futureValueInitial = initialInvestment * Math.pow(1 + monthlyRate, totalMonths);
+
+            // Step 2: Calculate the future value of the monthly contributions
 
             const futureValueContributions = monthlyContribution * ((Math.pow(1 + monthlyRate, totalMonths) - 1) / monthlyRate);
 
@@ -396,7 +403,7 @@ const RealTimeGraph = () => {
             setAnticipatedInheritanceValue('');
             setInheritanceAgeValue('');
         }
-        setInheritanceIsCollapsed(!inheritanceIsCollapsed); // Toggle collapse state  for inheritance bubble
+        setInheritanceIsCollapsed(!inheritanceIsCollapsed);
 
     }
     const toggleCollapseMidRetirementChange = () => {
@@ -404,7 +411,7 @@ const RealTimeGraph = () => {
             setNewRetirementIncomeValue('');
             setNewRetirementIncomeAgeValue('');
         }
-        setMidRetirementChangeIsCollapsed(!midRetirementChangeIsCollapsed); // Toggle collapse state  for inheritance bubble
+        setMidRetirementChangeIsCollapsed(!midRetirementChangeIsCollapsed);
 
     }
     return (
@@ -538,9 +545,9 @@ const RealTimeGraph = () => {
                                     <Form.Group>
                                         <CurrencyInput
                                             value={initialInvestmentValue}
-                                            decimalsLimit={2}        // Allow two decimals (e.g., cents)
-                                            prefix="$"               // Currency symbol
-                                            onValueChange={(value) => setInitialInvestmentValue(value)}  // Update state
+                                            decimalsLimit={2}
+                                            prefix="$"
+                                            onValueChange={(value) => setInitialInvestmentValue(value)}
                                             placeholder="Enter amount"
                                             required
                                             className="fun-input"
@@ -555,9 +562,9 @@ const RealTimeGraph = () => {
                                     <Form.Group>
                                         <CurrencyInput
                                             value={retirementSalaryValue}
-                                            decimalsLimit={2}        // Allow two decimals (e.g., cents)
-                                            prefix="$"               // Currency symbol
-                                            onValueChange={(value) => setRetirementSalaryValue(value)}  // Update state
+                                            decimalsLimit={2}
+                                            prefix="$"
+                                            onValueChange={(value) => setRetirementSalaryValue(value)}
                                             placeholder="Enter amount"
                                             required
                                             className="fun-input"
@@ -583,9 +590,9 @@ const RealTimeGraph = () => {
                                     <Form.Group>
                                         <CurrencyInput
                                             value={currentMonthlyContibutionsValue}
-                                            decimalsLimit={2}        // Allow two decimals (e.g., cents)
-                                            prefix="$"               // Currency symbol
-                                            onValueChange={(value) => setCurrentMonthlyContributionsValue(value)}  // Update state
+                                            decimalsLimit={2}
+                                            prefix="$"
+                                            onValueChange={(value) => setCurrentMonthlyContributionsValue(value)}
                                             placeholder="Enter amount"
                                             required
                                             className="fun-input"
@@ -667,15 +674,15 @@ const RealTimeGraph = () => {
                                             beginAtZero: true
                                         },
                                         grid: {
-                                            display: true, // Hide the grid lines for the y-axis
+                                            display: true, 
                                         }
                                     },
                                     x: {
                                         type: 'linear',
-                                        min: 18,  // Starting value for x-axis
-                                        max: 100, // Ending value for x-axis
+                                        min: 18, 
+                                        max: 100,
                                         ticks: {
-                                            stepSize: 1,  // Interval for ticks (e.g., 0, 10, 20, ...)
+                                            stepSize: 1,
                                         },
                                         grid: {
                                             display: false,
@@ -690,11 +697,11 @@ const RealTimeGraph = () => {
                                         display: true,
                                         position: 'bottom',
                                         labels: {
-                                            boxWidth: 20,     // default is 40
-                                            boxHeight: 2,    // optional (only works in newer Chart.js versions)
-                                            padding: 10,      // space between items
+                                            boxWidth: 20,
+                                            boxHeight: 2,
+                                            padding: 10, 
                                             font: {
-                                              size: 14,       // reduce text size if needed
+                                              size: 14, 
                                             },
                                           }
                                       },
@@ -706,15 +713,17 @@ const RealTimeGraph = () => {
                                         anchor: 'end',
                                         align: 'end',
                                         font: {
-                                            size: 15,  // Adjust this number to make the text bigger or smaller
-                                            weight: 'bold',  // Optional: make the text bold
-                                            family: 'Arial', // Optional: you can change the font family
+                                            size: 15,
+                                            weight: 'bold',
+                                            family: 'Arial',
                                         },
                                         offset: -2,
                                         formatter: (value) => {
                                             const formattedValue = new Intl.NumberFormat('en-CA', {
                                                 style: 'currency',
                                                 currency: 'CAD',
+                                                minimumFractionDigits: 0,
+                                                maximumFractionDigits: 0
                                             }).format(value);
 
                                             return `FIN: ${formattedValue}`;
@@ -723,14 +732,14 @@ const RealTimeGraph = () => {
                                     annotation: {
                                         annotations: {
                                             lineAtZero: {
-                                                type: 'line',  // Type of annotation (line)
-                                                xMin: 0,  // Position at x = 0
-                                                xMax: 0,  // End position at x = 0 (for vertical line)
-                                                borderColor: 'blue',  // Line color
-                                                borderWidth: 2,  // Line thickness
+                                                type: 'line',
+                                                xMin: 0,
+                                                xMax: 0,
+                                                borderColor: 'blue',
+                                                borderWidth: 2,
                                                 label: {
-                                                    content: 'Zero',  // Optional label at the line
-                                                    position: 'top',  // Label position
+                                                    content: 'Zero',
+                                                    position: 'top',
                                                 },
                                             },
                                         },
@@ -738,7 +747,7 @@ const RealTimeGraph = () => {
                                 },
                                 layout: {
                                     padding: {
-                                        top: 20,  // Add padding to the top
+                                        top: 20,
                                     }
                                 }
                             }}
@@ -782,7 +791,7 @@ const RealTimeGraph = () => {
                                         style={{
                                             position: 'absolute',
                                             top: '25px',
-                                            left: '-10px', // Adjust based on the thumb size
+                                            left: '-10px',
                                             fontSize: '14px',
                                             color: '#007bff',
                                             textAlign: 'center',
