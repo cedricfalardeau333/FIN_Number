@@ -2,7 +2,7 @@
 // DONE -----------show  adjusted retirement income for inflation under today's dollars
 // DONE -----------make inflationa slider
 // DONE -----------show change in post retirement income from  inflation when moving chart
-// PARTLY DONE -- need to adjust monthly contributions calculations -------------anticipated inherittace feature
+// DONE -- need to adjust monthly contributions calculations -------------anticipated inherittace feature
 // DONE ------------Larger thicker graph lines, perhaps a coloured background?
 // DONE ------------Bottom line should range from 18 to 99 and fixed
 // DONE ------------Title on top FIN#
@@ -36,7 +36,7 @@
 
 // DONE ------------- add an option to reduce desired retirmement income at selected age
 
-// adjust mid retirement income change for calculating FIN 
+// DONE  ------------ adjust mid retirement income change for calculating FIN 
 
 // DONE ------------- Remove cents
  
@@ -144,7 +144,7 @@ const RealTimeGraph = () => {
         const postMonthlyInterestRate = postInterestRate / 100 /12 ;
         const actualAnnualInflationRate = inflationRate / 100;
         // Initialise total future value
-        const adjustedFutureValue =  calculateCompoundInterest(initialInvestment,preInterestRate,yearsUntilRetirement,0,inflationRate,retirementAge);
+        const adjustedFutureValue =  calculateCompoundInterest(initialInvestment,preInterestRate,yearsUntilRetirement,0,inflationRate,currentAge);
         // let totalFutureValueAtRetirement = initialInvestment * Math.pow(1 + preAnnualInterestRate, yearsUntilRetirement);
         // let adjustedFutureValue = totalFutureValueAtRetirement / Math.pow(1 + actualAnnualInflationRate, yearsUntilRetirement);
 
@@ -162,7 +162,23 @@ const RealTimeGraph = () => {
         // Adjusted withdrawal amount considering inflation
         const adjustedWithdrawal = monthlyWithdrawal * Math.pow(1 + actualAnnualInflationRate, yearsUntilRetirement);
         // Amount still needed after accounting for future value of initial investment
-        const presentValueWithInterest = adjustedWithdrawal * (1 - Math.pow(1 + postMonthlyInterestRate, -(withdrawalDuration))) / postMonthlyInterestRate;
+        let presentValueWithInterest = 0;
+        if(ageOfDeparture > newRetirementIncomeAgeValue &&  newRetirementIncomeAgeValue >  retirementAge){
+            const withdrawalDuration1 = (newRetirementIncomeAgeValue - retirementAge)*12;
+            const withdrawalDuration2 = (ageOfDeparture - newRetirementIncomeAgeValue)*12;
+            const adjustedWithdrawal2 = newRetirementIncomeValue * Math.pow(1 + actualAnnualInflationRate, yearsUntilRetirement);
+
+
+            const presentValueWithInterest1 = adjustedWithdrawal * (1 - Math.pow(1 + postMonthlyInterestRate, -(withdrawalDuration1))) / postMonthlyInterestRate;
+            const presentValueWithInterest2 = adjustedWithdrawal2 * (1 - Math.pow(1 + postMonthlyInterestRate, -(withdrawalDuration2))) / postMonthlyInterestRate;
+            //Discount this value back to the present (i.e., to before time frame 1 starts), since these payments begin after withdrawalDuration1 months.
+            const pv2 = presentValueWithInterest2 / Math.pow(1 + postMonthlyInterestRate, withdrawalDuration1);
+
+            presentValueWithInterest = presentValueWithInterest1 + pv2;
+        }
+        else{
+         presentValueWithInterest = adjustedWithdrawal * (1 - Math.pow(1 + postMonthlyInterestRate, -(withdrawalDuration))) / postMonthlyInterestRate;
+        }
         // Calculate the remaining amount needed
         const remainingAmount = presentValueWithInterest - adjustedFutureValue;
         // Total number of payments
@@ -253,7 +269,7 @@ const RealTimeGraph = () => {
         const i = annualInflationRate / 100; // Convert to decimal
         let adjustedWithdrawals;
         // Calculate the adjusted monthly withdrawal amount
-        if(currentYear >=newRetirementIncomeAgeValue && newRetirementIncomeAgeValue >= retirementAge){
+        if(currentYear >newRetirementIncomeAgeValue && newRetirementIncomeAgeValue > retirementAge){
             adjustedWithdrawals = newRetirementIncomeValue * Math.pow(1 + i, YearsBeforeRetirement);
         }
         else{
