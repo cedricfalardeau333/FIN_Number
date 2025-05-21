@@ -38,7 +38,7 @@
 
 // adjust mid retirement income change for calculating FIN 
 
-// Remove cents
+// DONE ------------- Remove cents
  
 
 import Chart from 'chart.js/auto';
@@ -61,7 +61,6 @@ const RealTimeGraph = () => {
 
 
 
-    let isEnough = false; // If the FIN is high enough to support lifestyle without going broke
     const [postInterestRateValue, setPostInterestRateValue] = useState(5); // Initial intrest rate value
     const [preInterestRateValue, setPreInterestRateValue] = useState(5); // Initial intrest rate value
     const [averageInflationValue, setAverageInflationValue] = useState(2); // Initial intrest rate value
@@ -76,8 +75,8 @@ const RealTimeGraph = () => {
     const [midRetirementChangeIsCollapsed, setMidRetirementChangeIsCollapsed] = useState(true); // State to track if inheritance collapsed
     const [anticipatedInheritanceValue, setAnticipatedInheritanceValue] = useState(0); // Inheritance value 
     const [inheritanceAgeValue, setInheritanceAgeValue] = useState(0); // Inheritance Age
-    const [newRetirementIncomeValue, setNewRetirementIncomeValue] = useState(0); // Inheritance value 
-    const [newRetirementIncomeAgeValue, setNewRetirementIncomeAgeValue] = useState(0); // Inheritance Age
+    const [newRetirementIncomeValue, setNewRetirementIncomeValue] = useState(0); // New retirement income value 
+    const [newRetirementIncomeAgeValue, setNewRetirementIncomeAgeValue] = useState(0); // New retirement income Age
     const [ageValues, setageValues] = useState([18, 65, 85]); // low, middle, high values
 
     const FormatCurrency = (value) => {
@@ -91,10 +90,37 @@ const RealTimeGraph = () => {
     };
 
     const handleChange = (ageValues) => {
-        setageValues(ageValues); // Update the state when slider handles move
-        setAgeValue(ageValues[0]);
-        setRetirementAgeValue(ageValues[1]);
-        setDeathAgeValue(ageValues[2]);
+        const min = 18;
+        const max = 100;
+        const minGap = 1;
+    
+        // Destructure the values from the incoming array
+        let [start, middle, end] = ageValues;
+    
+
+    
+        // Prevent overlap by enforcing a minimum gap of 1 unit
+        if (middle <= start + minGap) {
+            middle = start + minGap;  // Move middle forward if too close to start
+        }
+        if (end <= middle + minGap) {
+            end = middle + minGap;  // Move end forward if too close to middle
+        }
+        if (start >= middle - minGap) {
+            start = middle - minGap;  // Move start backward if too close to middle
+        }
+        if (middle >= end - minGap) {
+            middle = end - minGap;  // Move middle backward if too close to end
+        }
+            // Clamp each value to the valid range [18, 100]
+        start = Math.max(min, Math.min(start, max-2));
+        middle = Math.max(min, Math.min(middle, max-1));
+        end = Math.max(min, Math.min(end, max));
+        // Set the updated values
+        setageValues([start, middle, end]);
+        setAgeValue(start);
+        setRetirementAgeValue(middle);
+        setDeathAgeValue(end);
     };
 
     function calculateMonthlyContribution(
@@ -110,12 +136,12 @@ const RealTimeGraph = () => {
         valueOfInheritance
     ) {
         const yearsUntilRetirement = (retirementAge - currentAge);
-        const withdrawalDuration = (ageOfDeparture - retirementAge);
+        const withdrawalDuration = (ageOfDeparture - retirementAge)*12;
         const yearlyWithdrawl = monthlyWithdrawal * 12
 
         // Convert rates to decimals
-        const preAnnualInterestRate = preInterestRate / 100;
-        const postAnnualInterestRate = postInterestRate / 100;
+        const preMonthlyInterestRate = preInterestRate / 100 / 12;
+        const postMonthlyInterestRate = postInterestRate / 100 /12 ;
         const actualAnnualInflationRate = inflationRate / 100;
         // Initialise total future value
         const adjustedFutureValue =  calculateCompoundInterest(initialInvestment,preInterestRate,yearsUntilRetirement,0,inflationRate,retirementAge);
@@ -134,20 +160,19 @@ const RealTimeGraph = () => {
         // }
        
         // Adjusted withdrawal amount considering inflation
-        const adjustedWithdrawal = yearlyWithdrawl * Math.pow(1 + actualAnnualInflationRate, yearsUntilRetirement);
-
+        const adjustedWithdrawal = monthlyWithdrawal * Math.pow(1 + actualAnnualInflationRate, yearsUntilRetirement);
         // Amount still needed after accounting for future value of initial investment
-        const presentValueWithInterest = adjustedWithdrawal * (1 - Math.pow(1 + postAnnualInterestRate, -withdrawalDuration)) / postAnnualInterestRate;
+        const presentValueWithInterest = adjustedWithdrawal * (1 - Math.pow(1 + postMonthlyInterestRate, -(withdrawalDuration))) / postMonthlyInterestRate;
         // Calculate the remaining amount needed
         const remainingAmount = presentValueWithInterest - adjustedFutureValue;
-
-        // Monthly interest rate and total number of payments
-        const monthlyInterestRate = preAnnualInterestRate / 12;
+        // Total number of payments
         const totalPayments = yearsUntilRetirement * 12;
 
         // Calculate the monthly investment needed
         const adjustedAmount = remainingAmount * Math.pow(1 + actualAnnualInflationRate, yearsUntilRetirement);
-        const monthlyInvestment = (adjustedAmount * monthlyInterestRate) / (Math.pow(1 + monthlyInterestRate, totalPayments) - 1);
+        const factor = (Math.pow(1 + preMonthlyInterestRate, totalPayments) - 1) / preMonthlyInterestRate;
+        const monthlyInvestment = adjustedAmount /  factor
+
 
 
         setMonthlyContributionsValue(monthlyInvestment > 0 ? monthlyInvestment.toFixed(2) : 0); // Ensure no negative contributions
@@ -224,36 +249,30 @@ const RealTimeGraph = () => {
     function calculateCompoundInterestAfterRetirement(annualInterestRate, YearsBeforeRetirement, previousInvestment, annualInflationRate, monthlyWithdrawal, currentYear,retirementAge) {
 
         // Convert annual rates to decimals
-        const r = annualInterestRate / 100;  // Convert to decimal
+        const r = annualInterestRate / 100 / 12;  // Convert to decimal
         const i = annualInflationRate / 100; // Convert to decimal
         let adjustedWithdrawals;
         // Calculate the adjusted monthly withdrawal amount
-        if(currentYear >=newRetirementIncomeAgeValue   && newRetirementIncomeAgeValue >= retirementAge){
+        if(currentYear >=newRetirementIncomeAgeValue && newRetirementIncomeAgeValue >= retirementAge){
             adjustedWithdrawals = newRetirementIncomeValue * Math.pow(1 + i, YearsBeforeRetirement);
         }
         else{
             adjustedWithdrawals = monthlyWithdrawal * Math.pow(1 + i, YearsBeforeRetirement);
         }
-
-        // Calculate the total amount after interest for the year
-        const totalAfterInterest = previousInvestment * (1 + r);
-
-        // Total withdrawals for the year
-        const totalWithdrawals = adjustedWithdrawals * 12; // 12 months
-
-        // Calculate the amount left at the end of the year
-        let amountLeft = totalAfterInterest - totalWithdrawals;
+        let amountLeft = previousInvestment
+        for (let month = 1; month <= 12; month++) {
+            const interest = amountLeft * r;  // Calculate interest for the month
+            amountLeft += interest;                     // Add interest
+            amountLeft -= adjustedWithdrawals;          // Subtract withdrawal
+        }
 
         if(inheritanceAgeValue == currentYear){
             amountLeft = amountLeft + anticipatedInheritanceValue;
         }
-        if (amountLeft < 0) {
-            if (amountLeft < -20)
-                isEnough = false;
+        if (amountLeft < 20) {
             return 0;
         }
         else {
-            isEnough = true;
             return amountLeft;
         }
     }
@@ -272,8 +291,8 @@ const RealTimeGraph = () => {
     };
 
     // Generate initial data
-    const getData = generateData(deathAgeValue - ageValue, initialInvestmentValue, ageValue, retirementAgeValue, postInterestRateValue, preInterestRateValue, monthlyContibutionsValue, averageInflationValue, retirementSalaryValue);
-    const getExistingPAC = generateData(deathAgeValue - ageValue, initialInvestmentValue, ageValue, retirementAgeValue, postInterestRateValue, preInterestRateValue, currentMonthlyContibutionsValue, averageInflationValue, retirementSalaryValue);
+    const getData = generateData(deathAgeValue - ageValue, initialInvestmentValue, ageValue, retirementAgeValue, postInterestRateValue, preInterestRateValue, monthlyContibutionsValue, averageInflationValue, retirementSalaryValue).map(value => Math.round(value));
+    const getExistingPAC = generateData(deathAgeValue - ageValue, initialInvestmentValue, ageValue, retirementAgeValue, postInterestRateValue, preInterestRateValue, currentMonthlyContibutionsValue, averageInflationValue, retirementSalaryValue).map(value => Math.round(value));
 
     // Chart data and options
     const [chartData, setChartData] = useState({
@@ -753,7 +772,7 @@ const RealTimeGraph = () => {
                             }}
                         />
                     </div>
-                    <div className="slider-container" style={{ marginLeft: '50px', marginRight: '25px' }}>
+                    <div className="slider-container" style={{ marginLeft: '55px', marginRight: '15px' }}>
 
                         <Range
                             values={ageValues}
