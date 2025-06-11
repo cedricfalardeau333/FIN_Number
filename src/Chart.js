@@ -39,6 +39,12 @@
 // DONE  ------------ adjust mid retirement income change for calculating FIN 
 
 // DONE ------------- Remove cents
+
+// round off to thousands
+
+// add shortfall. Show how much they need if they don't have enough money. Or inverse if theres excess
+
+//Possible pension 
  
 
 import Chart from 'chart.js/auto';
