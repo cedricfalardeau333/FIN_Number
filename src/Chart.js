@@ -181,9 +181,17 @@ const RealTimeGraph = () => {
             const pv2 = presentValueWithInterest2 / Math.pow(1 + postMonthlyInterestRate, withdrawalDuration1);
 
             presentValueWithInterest = presentValueWithInterest1 + pv2;
+                if (ageOfDeparture > inheritanceAgeValue  && inheritanceAgeValue > retirementAge){
+            let PVWithInheritance = anticipatedInheritanceValue / Math.pow(1 + postMonthlyInterestRate, (inheritanceAgeValue- retirementAge)*12);
+            presentValueWithInterest =  presentValueWithInterest - PVWithInheritance;
+         }
         }
         else{
          presentValueWithInterest = adjustedWithdrawal * (1 - Math.pow(1 + postMonthlyInterestRate, -(withdrawalDuration))) / postMonthlyInterestRate;
+         if (ageOfDeparture > inheritanceAgeValue  && inheritanceAgeValue > retirementAge){
+            let PVWithInheritance = anticipatedInheritanceValue / Math.pow(1 + postMonthlyInterestRate, (inheritanceAgeValue- retirementAge)*12);
+            presentValueWithInterest =  presentValueWithInterest - PVWithInheritance;
+         }
         }
         // Calculate the remaining amount needed
         const remainingAmount = presentValueWithInterest - adjustedFutureValue;
