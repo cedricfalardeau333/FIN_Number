@@ -1,5 +1,5 @@
 {
-  "name": "FIN_Number",
+  "name": "fin_number",
   "version": "0.1.0",
   "private": true,
   "dependencies": {
@@ -54,5 +54,5 @@
   "devDependencies": {
     "gh-pages": "^6.1.1"
   },
-  "homepage": "http://cedricfalardeau333.github.io/PrimericaFinancialTool"
+  "homepage": "http://cedricfalardeau333.github.io/FIN_Number"
 }
