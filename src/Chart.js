@@ -18,13 +18,13 @@
 
 // DONE ------------ Not sure why its asking for the monthly investment field to be filled out
 
-// ? ---------------Not sure but I think the formulas are not accurately calculating stuff
+// ? --------------- Not sure but I think the formulas are not accurately calculating stuff
 
-// DONE ------------Can we show the existing pac if they have one and how it will not , in most cases, fulfil the needs
+// DONE ------------ Can we show the existing pac if they have one and how it will not , in most cases, fulfil the needs
 
-// YES -------------Does the monthly retirement income factor inflation?
+// YES ------------- Does the monthly retirement income factor inflation?
 
-// DONE ------------Add commas in money values
+// DONE ------------ Add commas in money values
 
 // DONE ------------ auto update for monthly investment
 
@@ -45,12 +45,14 @@
 // add shortfall. Show how much they need if they don't have enough money. Or inverse if theres excess
 
 //Possible pension 
+
+// DONE ------------- adjust monthly income to be adjusted with time and inflation after
  
 
 import Chart from 'chart.js/auto';
 import React, { useState, useEffect } from 'react';
 import { Line } from 'react-chartjs-2';
-import { Container, Row, Col, Form, Button } from 'react-bootstrap';
+import { Container, Row, Col, Form } from 'react-bootstrap';
 import { FaPlus, FaMinus } from 'react-icons/fa';
 import ChartDataLabels from 'chartjs-plugin-datalabels';
 import ChartAnnotation from 'chartjs-plugin-annotation';
@@ -143,7 +145,6 @@ const RealTimeGraph = () => {
     ) {
         const yearsUntilRetirement = (retirementAge - currentAge);
         const withdrawalDuration = (ageOfDeparture - retirementAge)*12;
-        const yearlyWithdrawl = monthlyWithdrawal * 12
 
         // Convert rates to decimals
         const preMonthlyInterestRate = preInterestRate / 100 / 12;
@@ -169,25 +170,28 @@ const RealTimeGraph = () => {
         const adjustedWithdrawal = monthlyWithdrawal * Math.pow(1 + actualAnnualInflationRate, yearsUntilRetirement);
         // Amount still needed after accounting for future value of initial investment
         let presentValueWithInterest = 0;
+        // Check for mid retirement income change
         if(ageOfDeparture > newRetirementIncomeAgeValue &&  newRetirementIncomeAgeValue >  retirementAge){
             const withdrawalDuration1 = (newRetirementIncomeAgeValue - retirementAge)*12;
             const withdrawalDuration2 = (ageOfDeparture - newRetirementIncomeAgeValue)*12;
-            const adjustedWithdrawal2 = newRetirementIncomeValue * Math.pow(1 + actualAnnualInflationRate, yearsUntilRetirement);
+            const adjustedWithdrawal2 = newRetirementIncomeValue * Math.pow(1 + actualAnnualInflationRate, newRetirementIncomeAgeValue - currentAge);
 
 
-            const presentValueWithInterest1 = adjustedWithdrawal * (1 - Math.pow(1 + postMonthlyInterestRate, -(withdrawalDuration1))) / postMonthlyInterestRate;
-            const presentValueWithInterest2 = adjustedWithdrawal2 * (1 - Math.pow(1 + postMonthlyInterestRate, -(withdrawalDuration2))) / postMonthlyInterestRate;
-            //Discount this value back to the present (i.e., to before time frame 1 starts), since these payments begin after withdrawalDuration1 months.
+            const presentValueWithInterest1 = presentValueWithInflation(adjustedWithdrawal,postMonthlyInterestRate,Math.pow(1 + actualAnnualInflationRate, 1 / 12) - 1,withdrawalDuration1)
+            const presentValueWithInterest2 = presentValueWithInflation(adjustedWithdrawal2,postMonthlyInterestRate,Math.pow(1 + actualAnnualInflationRate, 1 / 12) - 1,withdrawalDuration2)
+            //Discount this value back to the present (i.e. to before time frame 1 starts), since these payments begin after withdrawalDuration1 months.
             const pv2 = presentValueWithInterest2 / Math.pow(1 + postMonthlyInterestRate, withdrawalDuration1);
 
             presentValueWithInterest = presentValueWithInterest1 + pv2;
+            //check for inheritance
                 if (ageOfDeparture > inheritanceAgeValue  && inheritanceAgeValue > retirementAge){
             let PVWithInheritance = anticipatedInheritanceValue / Math.pow(1 + postMonthlyInterestRate, (inheritanceAgeValue- retirementAge)*12);
             presentValueWithInterest =  presentValueWithInterest - PVWithInheritance;
          }
         }
         else{
-         presentValueWithInterest = adjustedWithdrawal * (1 - Math.pow(1 + postMonthlyInterestRate, -(withdrawalDuration))) / postMonthlyInterestRate;
+         presentValueWithInterest = presentValueWithInflation(adjustedWithdrawal,postMonthlyInterestRate,Math.pow(1 + actualAnnualInflationRate, 1 / 12) - 1,withdrawalDuration)
+         //check for inheritance
          if (ageOfDeparture > inheritanceAgeValue  && inheritanceAgeValue > retirementAge){
             let PVWithInheritance = anticipatedInheritanceValue / Math.pow(1 + postMonthlyInterestRate, (inheritanceAgeValue- retirementAge)*12);
             presentValueWithInterest =  presentValueWithInterest - PVWithInheritance;
@@ -224,6 +228,12 @@ const RealTimeGraph = () => {
         );
     };
 
+    function presentValueWithInflation(w, r, i, n) {
+    if (r === i) {
+        return w * n / (1 + r);
+    }
+    return w * (1 - Math.pow((1 + r) / (1 + i), -n)) / (r - i);
+    }
 
     function calculateCompoundInterest(initialInvestment, annualInterestRate, years, monthlyContribution, inflationValue, age) {
 
@@ -276,43 +286,89 @@ const RealTimeGraph = () => {
         }
     }
 
-    function calculateCompoundInterestAfterRetirement(annualInterestRate, YearsBeforeRetirement, previousInvestment, annualInflationRate, monthlyWithdrawal, currentYear,retirementAge) {
+    // function calculateCompoundInterestAfterRetirement(annualInterestRate, totalYears, previousInvestment, annualInflationRate, monthlyWithdrawal, currentYear,retirementAge) {
 
-        // Convert annual rates to decimals
-        const r = annualInterestRate / 100 / 12;  // Convert to decimal
-        const i = annualInflationRate / 100; // Convert to decimal
-        let adjustedWithdrawals;
-        // Calculate the adjusted monthly withdrawal amount
-        if(currentYear >newRetirementIncomeAgeValue && newRetirementIncomeAgeValue > retirementAge){
-            adjustedWithdrawals = newRetirementIncomeValue * Math.pow(1 + i, YearsBeforeRetirement);
-        }
-        else{
-            adjustedWithdrawals = monthlyWithdrawal * Math.pow(1 + i, YearsBeforeRetirement);
-        }
-        let amountLeft = previousInvestment
-        for (let month = 1; month <= 12; month++) {
-            const interest = amountLeft * r;  // Calculate interest for the month
-            amountLeft += interest;                     // Add interest
-            amountLeft -= adjustedWithdrawals;          // Subtract withdrawal
-        }
+    //     // Convert annual rates to decimals
+    //     const r = annualInterestRate / 100 / 12;  // Convert to decimal
+    //     const i = annualInflationRate / 100; // Convert to decimal
+    //     let adjustedWithdrawals;
+    //     // Calculate the adjusted monthly withdrawal amount
+    //     if(currentYear >newRetirementIncomeAgeValue && newRetirementIncomeAgeValue > retirementAge){
+    //         adjustedWithdrawals = newRetirementIncomeValue * Math.pow(1 + i, totalYears);
+    //     }
+    //     else{
+    //         adjustedWithdrawals = monthlyWithdrawal * Math.pow(1 + i, totalYears);
+    //     }
+    //     let amountLeft = previousInvestment
+    //     for (let month = 1; month <= 12; month++) {
+    //         const interest = amountLeft * r;  // Calculate interest for the month
+    //         amountLeft += interest;                     // Add interest
+    //         amountLeft -= adjustedWithdrawals;          // Subtract withdrawal
+    //     }
 
-        if(inheritanceAgeValue == currentYear){
+    //     if(inheritanceAgeValue == currentYear){
+    //         amountLeft = amountLeft + anticipatedInheritanceValue;
+    //     }
+    //     // if (amountLeft < 20) {
+    //     //     return 0;
+    //     // }
+    //     // else {
+    //         return amountLeft;
+    //    // }
+    // }
+
+    function calculateCompoundInterestAfterRetirement(
+    initialInvestment,
+    baseMonthlyWithdrawal,
+    interestRate,
+    inflationRate,
+    years,
+    totalYearsUntilRetirement,
+    currentYear,
+    retirementAge
+) {
+    let monthlyInterestRate = interestRate/100/12
+    let annualInflationRate =  inflationRate/100
+    let adjustedWithdrawals
+
+    adjustedWithdrawals = baseMonthlyWithdrawal * Math.pow(1 + annualInflationRate, totalYearsUntilRetirement);
+
+    const months = years * 12;
+    const monthlyInflationRate = Math.pow(1 + annualInflationRate, 1 / 12);
+    let amountLeft = initialInvestment;
+
+    for (let month = 0; month < months; month++) {
+        // Apply monthly interest
+        amountLeft += amountLeft * monthlyInterestRate;
+        if(month === (newRetirementIncomeAgeValue-retirementAge)*12){
+            adjustedWithdrawals = newRetirementIncomeValue * Math.pow(1 + annualInflationRate, totalYearsUntilRetirement);
+        }
+        // Adjust withdrawal for inflation over time
+        const inflationAdjustedWithdrawal = adjustedWithdrawals * Math.pow(monthlyInflationRate, month);
+
+        // Subtract withdrawal
+        amountLeft -= inflationAdjustedWithdrawal;
+        // Apply inheritance if exists
+        if(month === (inheritanceAgeValue-retirementAge)*12){
             amountLeft = amountLeft + anticipatedInheritanceValue;
         }
+    }
+        // If less than 20 make it 0 to make clean
         if (amountLeft < 20) {
             return 0;
         }
         else {
             return amountLeft;
         }
-    }
+}
 
     const generateData = (count, initialInvestment, age, retirementAge, postInterestRate, preInterestRate, monthlyContibutions, inflation, monthlybudget) => {
 
         const data = [];
         for (let i = 0; i <= count; i++) {
             if (i > (retirementAge - age)) {
-                data.push(calculateCompoundInterestAfterRetirement(postInterestRate, (retirementAge - age), data[i - 1], inflation, monthlybudget,age+i,retirementAge));
+               // data.push(calculateCompoundInterestAfterRetirement(postInterestRate, i, data[i - 1], inflation, monthlybudget,age+i,retirementAge));
+                data.push(calculateCompoundInterestAfterRetirement(data[retirementAge - age], monthlybudget,postInterestRate, inflation,i-(retirementAge - age),(retirementAge - age),age+i,retirementAge));
                 continue;
             }
             data.push(calculateCompoundInterest(initialInvestment, preInterestRate, i, monthlyContibutions, inflation, age));
@@ -596,7 +652,7 @@ const RealTimeGraph = () => {
                                             value={initialInvestmentValue}
                                             decimalsLimit={2}
                                             prefix="$"
-                                            onValueChange={(value) => setInitialInvestmentValue(value)}
+                                            onValueChange={(value) => setInitialInvestmentValue(value || '')}
                                             placeholder="Enter amount"
                                             required
                                             className="fun-input"
@@ -613,7 +669,7 @@ const RealTimeGraph = () => {
                                             value={retirementSalaryValue}
                                             decimalsLimit={2}
                                             prefix="$"
-                                            onValueChange={(value) => setRetirementSalaryValue(value)}
+                                            onValueChange={(value) => setRetirementSalaryValue(value || '')}
                                             placeholder="Enter amount"
                                             required
                                             className="fun-input"
@@ -641,7 +697,7 @@ const RealTimeGraph = () => {
                                             value={currentMonthlyContibutionsValue}
                                             decimalsLimit={2}
                                             prefix="$"
-                                            onValueChange={(value) => setCurrentMonthlyContributionsValue(value)}
+                                            onValueChange={(value) => setCurrentMonthlyContributionsValue(value || '')}
                                             placeholder="Enter amount"
                                             required
                                             className="fun-input"
