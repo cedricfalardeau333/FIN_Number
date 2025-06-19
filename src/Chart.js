@@ -70,7 +70,7 @@ const RealTimeGraph = () => {
 
 
     const [postInterestRateValue, setPostInterestRateValue] = useState(5); // Initial intrest rate value
-    const [preInterestRateValue, setPreInterestRateValue] = useState(5); // Initial intrest rate value
+    const [preInterestRateValue, setPreInterestRateValue] = useState(8); // Initial intrest rate value
     const [averageInflationValue, setAverageInflationValue] = useState(2); // Initial intrest rate value
     const [ageValue, setAgeValue] = useState(18); // Initial age value
     const [retirementAgeValue, setRetirementAgeValue] = useState(65); // Initial retirement age value
@@ -78,7 +78,7 @@ const RealTimeGraph = () => {
     const [initialInvestmentValue, setInitialInvestmentValue] = useState(100000); // Initial Investment value
     const [monthlyContibutionsValue, setMonthlyContributionsValue] = useState(0); // Initial Investment value
     const [currentMonthlyContibutionsValue, setCurrentMonthlyContributionsValue] = useState(0); // Initial Investment value
-    const [retirementSalaryValue, setRetirementSalaryValue] = useState(2000); // monthlybudget after retirement
+    const [retirementSalaryValue, setRetirementSalaryValue] = useState(0); // monthlybudget after retirement
     const [inheritanceIsCollapsed, setInheritanceIsCollapsed] = useState(true); // State to track if inheritance collapsed
     const [midRetirementChangeIsCollapsed, setMidRetirementChangeIsCollapsed] = useState(true); // State to track if inheritance collapsed
     const [anticipatedInheritanceValue, setAnticipatedInheritanceValue] = useState(0); // Inheritance value 
