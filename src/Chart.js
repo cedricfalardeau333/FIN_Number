@@ -75,7 +75,7 @@ const RealTimeGraph = () => {
     const [ageValue, setAgeValue] = useState(18); // Initial age value
     const [retirementAgeValue, setRetirementAgeValue] = useState(65); // Initial retirement age value
     const [deathAgeValue, setDeathAgeValue] = useState(85); // Initial retirement age value
-    const [initialInvestmentValue, setInitialInvestmentValue] = useState(100000); // Initial Investment value
+    const [initialInvestmentValue, setInitialInvestmentValue] = useState(0); // Initial Investment value
     const [monthlyContibutionsValue, setMonthlyContributionsValue] = useState(0); // Initial Investment value
     const [currentMonthlyContibutionsValue, setCurrentMonthlyContributionsValue] = useState(0); // Initial Investment value
     const [retirementSalaryValue, setRetirementSalaryValue] = useState(0); // monthlybudget after retirement
