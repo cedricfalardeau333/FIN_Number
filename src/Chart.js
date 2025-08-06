@@ -8,7 +8,7 @@
 // DONE ------------Title on top FIN#
 // DONE ------------All figures need comas. $1,234,000 not 1234000
 // DONE ------------What is the future balance at date of departure? The graph should end there not at 0
-// CONFLICTING WITH PREVIOUS --- Value son left side need to remain constant not change with calculations
+// CONFLICTING WITH PREVIOUS --- Values on left side need to remain constant not change with calculations
 // DONE ------------Make everything fit on one page. No need to scroll the page up and down
 // DONE ------------Does the monthly retirement income factor in inflation?
 
@@ -81,10 +81,10 @@ const RealTimeGraph = () => {
     const [retirementSalaryValue, setRetirementSalaryValue] = useState(0); // monthlybudget after retirement
     const [inheritanceIsCollapsed, setInheritanceIsCollapsed] = useState(true); // State to track if inheritance collapsed
     const [midRetirementChangeIsCollapsed, setMidRetirementChangeIsCollapsed] = useState(true); // State to track if inheritance collapsed
-    const [anticipatedInheritanceValue, setAnticipatedInheritanceValue] = useState(0); // Inheritance value 
-    const [inheritanceAgeValue, setInheritanceAgeValue] = useState(0); // Inheritance Age
-    const [newRetirementIncomeValue, setNewRetirementIncomeValue] = useState(0); // New retirement income value 
-    const [newRetirementIncomeAgeValue, setNewRetirementIncomeAgeValue] = useState(0); // New retirement income Age
+    const [anticipatedInheritanceValue, setAnticipatedInheritanceValue] = useState(''); // Inheritance value 
+    const [inheritanceAgeValue, setInheritanceAgeValue] = useState(''); // Inheritance Age
+    const [newRetirementIncomeValue, setNewRetirementIncomeValue] = useState(''); // New retirement income value 
+    const [newRetirementIncomeAgeValue, setNewRetirementIncomeAgeValue] = useState(''); // New retirement income Age
     const [ageValues, setageValues] = useState([18, 65, 85]); // low, middle, high values
 
     const FormatCurrency = (value) => {
@@ -523,7 +523,7 @@ const RealTimeGraph = () => {
         <Container style={{ backgroundImage: 'linear-gradient(#f0f6fc, #9ec2e6)' }}>
             <Row className="mb-4">
                 <Col>
-                    <h1 style={{marginBottom:"0px"}} className="text-center">FIN#</h1>
+                    <h2 style={{marginBottom:"0px", marginTop:"0px", padding:'0px'}} className="text-center">FIN#</h2>
                     <Form onSubmit={handleSubmit}>
                         <Form.Group controlId="form" className="p-4 border rounded shadow-sm bg-light">
                             <div style={{
@@ -555,6 +555,7 @@ const RealTimeGraph = () => {
                                             <Form.Label>Value of Inheritance:</Form.Label>
                                             <Col>
                                                 <Form.Control
+                                                    placeholder='Enter amount'
                                                     type="number"
                                                     value={anticipatedInheritanceValue}
                                                     onChange={(e) => {
@@ -571,6 +572,7 @@ const RealTimeGraph = () => {
                                             <Form.Label>Age of Inheritance:</Form.Label>
                                             <Col>
                                                 <Form.Control
+                                                    placeholder='Enter Age'
                                                     type="number"
                                                     value={inheritanceAgeValue}
                                                     onChange={(e) => {
@@ -614,6 +616,7 @@ const RealTimeGraph = () => {
                                             <Form.Label>New Monthly income:</Form.Label>
                                             <Col>
                                                 <Form.Control
+                                                    placeholder='Enter amount'
                                                     type="number"
                                                     value={newRetirementIncomeValue}
                                                     onChange={(e) => {
@@ -630,6 +633,7 @@ const RealTimeGraph = () => {
                                             <Form.Label>Age of Income Change:</Form.Label>
                                             <Col>
                                                 <Form.Control
+                                                    placeholder='Enter Age'
                                                     type="number"
                                                     value={newRetirementIncomeAgeValue}
                                                     onChange={(e) => {
